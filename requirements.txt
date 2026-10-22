@@ -1,0 +1,13 @@
+pandas
+numpy
+requests
+sqlalchemy
+psycopg2-binary
+pandera
+pyyaml
+snakemake
+streamlit
+pytest
+tiffslide
+lifelines
+python-dotenv
