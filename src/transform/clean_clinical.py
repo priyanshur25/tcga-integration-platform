@@ -53,6 +53,19 @@ def clean_stage(value):
     return f"Stage {s}"
 
 
+def flag_index_diagnosis(df):
+    """Mark one diagnosis per patient as the index (earliest) diagnosis.
+
+    Earliest = smallest age_at_diagnosis_days. Missing ages sort last,
+    and ties keep the first record.
+    """
+    df = df.copy()
+    age = df["age_at_diagnosis_days"].fillna(float("inf"))
+    rank = age.groupby(df["patient_barcode"]).rank(method="first")
+    df["is_index_diagnosis"] = rank == 1
+    return df
+
+
 def main():
     cases = json.loads((RAW / "cases.json").read_text())
 
@@ -138,7 +151,7 @@ def main():
 
     tables = {
         "patient": pd.DataFrame(patients),
-        "diagnosis": pd.DataFrame(diagnoses),
+        "diagnosis": flag_index_diagnosis(pd.DataFrame(diagnoses)),
         "treatment": pd.DataFrame(treatments),
         "outcome": pd.DataFrame(outcomes),
         "outcome_rejects": pd.DataFrame(rejects, columns=["patient_barcode", "reason"]),

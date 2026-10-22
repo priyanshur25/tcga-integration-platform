@@ -37,6 +37,7 @@ CREATE TABLE diagnosis (
     primary_diagnosis      TEXT,
     ajcc_pathologic_stage  TEXT,
     age_at_diagnosis_days  INTEGER CHECK (age_at_diagnosis_days >= 0),
+    is_index_diagnosis     BOOLEAN NOT NULL DEFAULT FALSE,
     er_status              TEXT,
     pr_status              TEXT,
     her2_status            TEXT,
