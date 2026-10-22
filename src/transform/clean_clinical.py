@@ -105,6 +105,9 @@ def main():
         # ---- Outcome: time + event with censoring ----
         days_death = to_int(demo.get("days_to_death"))
         follow_vals = [to_int(d.get("days_to_last_follow_up")) for d in dxs]
+        follow_vals += [
+            to_int(f.get("days_to_follow_up")) for f in (c.get("follow_ups") or [])
+        ]
         follow_vals = [v for v in follow_vals if v is not None]
         days_follow = max(follow_vals) if follow_vals else None
 

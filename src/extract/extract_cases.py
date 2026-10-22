@@ -28,6 +28,9 @@ FIELDS = [
     "samples.sample_type",
     "samples.portions.slides.submitter_id",
     "samples.portions.slides.slide_id",
+    # follow-up visits (several per patient)
+    "follow_ups.follow_up_id",
+    "follow_ups.days_to_follow_up",
 ]
 
 if __name__ == "__main__":
