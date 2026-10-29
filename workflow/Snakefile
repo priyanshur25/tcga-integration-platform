@@ -1,0 +1,103 @@
+# TCGA-BRCA integration pipeline
+#
+#   snakemake -c1 --rerun-triggers mtime        rebuild everything out of date
+#   snakemake -c1 -n --rerun-triggers mtime     dry run: show what would run
+#
+# Prerequisite (one time): Docker running and sql/001_schema.sql applied.
+
+RAW = "data/raw"
+PROC = "data/processed"
+
+CLINICAL = ["patient", "diagnosis", "treatment", "outcome", "outcome_rejects"]
+SLIDES = ["specimen", "slide", "specimen_rejects", "slide_rejects"]
+MUTATIONS = ["molecular_profile", "mutation", "mutation_file_rejects"]
+LOAD_TABLES = ["patient", "diagnosis", "treatment", "outcome",
+               "specimen", "slide", "molecular_profile", "mutation"]
+
+
+rule all:
+    input:
+        "reports/qc_report.md",
+
+
+# ---------------- Extract (network; only runs if raw files are missing) ----------------
+
+rule extract_cases:
+    output:
+        RAW + "/cases.json",
+    shell:
+        "python -m src.extract.extract_cases"
+
+
+rule extract_files:
+    output:
+        RAW + "/slide_files.json",
+        RAW + "/mutation_files.json",
+    shell:
+        "python -m src.extract.extract_files"
+
+
+rule download_maf:
+    input:
+        RAW + "/mutation_files.json",
+    output:
+        RAW + "/maf_download.done",
+    shell:
+        "python -m src.extract.download_maf && touch {output}"
+
+
+# ---------------- Transform ----------------
+
+rule clean_clinical:
+    input:
+        cases=RAW + "/cases.json",
+        script="src/transform/clean_clinical.py",
+    output:
+        expand(PROC + "/{t}.csv", t=CLINICAL),
+    shell:
+        "python -m src.transform.clean_clinical"
+
+
+rule build_specimen_slide:
+    input:
+        cases=RAW + "/cases.json",
+        slides=RAW + "/slide_files.json",
+        script="src/transform/build_specimen_slide.py",
+    output:
+        expand(PROC + "/{t}.csv", t=SLIDES),
+    shell:
+        "python -m src.transform.build_specimen_slide"
+
+
+rule build_mutations:
+    input:
+        files=RAW + "/mutation_files.json",
+        mafs=RAW + "/maf_download.done",
+        specimen=PROC + "/specimen.csv",
+        script="src/transform/build_mutations.py",
+    output:
+        expand(PROC + "/{t}.csv", t=MUTATIONS),
+    shell:
+        "python -m src.transform.build_mutations"
+
+
+# ---------------- Load and validate ----------------
+
+rule load_db:
+    input:
+        expand(PROC + "/{t}.csv", t=LOAD_TABLES),
+        script="src/load/load_all.py",
+    output:
+        PROC + "/.db_loaded",
+    shell:
+        "python -m src.load.load_all && touch {output}"
+
+
+rule validate:
+    input:
+        loaded=PROC + "/.db_loaded",
+        script="src/validate/run_checks.py",
+    output:
+        "reports/qc_report.md",
+    shell:
+        "python -m src.validate.run_checks"
