@@ -1,6 +1,6 @@
 # Data quality report
 
-Generated: 2026-10-29 09:01 UTC
+Generated: 2026-10-29 09:18 UTC
 
 ## Table sizes
 
